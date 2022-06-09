@@ -3,5 +3,19 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.6.0",
     "@openzeppelin/test-helpers": "^0.5.15"
+  },
+  "scripts": {
+    "fork-fuji": "npx hardhat node --fork https://api.avax-test.network/ext/bc/C/rpc"
+  },
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.6",
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "chai": "^4.3.6",
+    "cli-table3": "^0.6.2",
+    "dotenv": "^16.0.1",
+    "ethereum-waffle": "^3.4.4",
+    "ethers": "^5.6.8",
+    "hardhat": "^2.9.9",
+    "solidity-coverage": "^0.7.21"
   }
 }
