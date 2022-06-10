@@ -5,7 +5,8 @@
     "@openzeppelin/test-helpers": "^0.5.15"
   },
   "scripts": {
-    "fork-fuji": "npx hardhat node --fork https://api.avax-test.network/ext/bc/C/rpc"
+    "fork-fuji": "npx hardhat node --fork https://api.avax-test.network/ext/bc/C/rpc",
+    "test": "npx hardhat test --network localhost"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
