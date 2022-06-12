@@ -50,15 +50,23 @@ contract Marketplace {
         _;
     }
 
-    modifier tokenOwnerOnly(uint256 tokenId) {
-        require(token.ownerOf(tokenId) == msg.sender, "Not token owner");
+    modifier tokenOwnerOnly(uint256 _tokenId) {
+        require(token.ownerOf(_tokenId) == msg.sender, "Not token owner");
         _;
     }
 
-    modifier tokenOwnerForbidden(uint256 tokenId) {
+    modifier tokenOwnerForbidden(uint256 _tokenId) {
         require(
-            token.ownerOf(tokenId) != msg.sender,
+            token.ownerOf(_tokenId) != msg.sender,
             "Token owner not allowed"
+        );
+        _;
+    }
+
+    modifier lastBuyOfferExpired(uint256 _tokenId) {
+        require(
+            activeBuyOffers[_tokenId].createTime < (block.timestamp - 1 days),
+            "Buy offer not expired"
         );
         _;
     }
@@ -219,5 +227,63 @@ contract Marketplace {
         buyOffersEscrow[msg.sender][_tokenId] = msg.value;
         // Broadcast the buy offer
         emit NewBuyOffer(_tokenId, msg.sender, msg.value);
+    }
+
+    /// @notice Withdraws a buy offer. Can only be withdrawn a day after being
+    ///         posted
+    /// @param _tokenId - id of the token whose buy order to remove
+    function withdrawBuyOffer(uint256 _tokenId)
+        external
+        lastBuyOfferExpired(_tokenId)
+    {
+        require(activeBuyOffers[_tokenId].buyer == msg.sender, "Not buyer");
+        uint256 refundBuyOfferAmount = buyOffersEscrow[msg.sender][_tokenId];
+
+        // Set the buyer balance to 0 before refund
+        buyOffersEscrow[msg.sender][_tokenId] = 0;
+
+        // Remove the current buy offer
+        delete (activeBuyOffers[_tokenId]);
+
+        // Refund the current buy offer if it is non-zero
+        if (refundBuyOfferAmount > 0) {
+            msg.sender.call{value: refundBuyOfferAmount}("");
+        }
+
+        emit BuyOfferWithdrawn(_tokenId, msg.sender);
+    }
+
+    /// @notice Lets a token owner accept the current buy offer
+    ///         (even without a sell offer)
+    /// @param _tokenId - id of the token whose buy order to accept
+    function acceptBuyOffer(uint256 _tokenId)
+        external
+        isMarketable(_tokenId)
+        tokenOwnerOnly(_tokenId)
+    {
+        address currentBuyer = activeBuyOffers[_tokenId].buyer;
+        require(currentBuyer != address(0), "No buy offer");
+        uint256 saleValue = activeBuyOffers[_tokenId].price;
+        uint256 netSaleValue = saleValue;
+        // Pay royalties if applicable
+        if (_checkRoyalties(tokenContractAddress)) {
+            netSaleValue = _deduceRoyalties(_tokenId, saleValue);
+        }
+
+        // Delete the current sell offer whether it exists or not
+        delete (activeSellOffers[_tokenId]);
+        // Delete the buy offer that was accepted
+        delete (activeBuyOffers[_tokenId]);
+        
+        // Withdraw buyer's balance
+        buyOffersEscrow[currentBuyer][_tokenId] = 0;
+        
+        // Transfer funds to the seller
+        msg.sender.call{value: netSaleValue}("");
+        
+        // And token to the buyer
+        token.safeTransferFrom(msg.sender, currentBuyer, _tokenId);
+        
+        emit Sale(_tokenId, msg.sender, currentBuyer, saleValue);
     }
 }
