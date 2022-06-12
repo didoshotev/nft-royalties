@@ -1,18 +1,18 @@
-const { expect } = require("chai");
+const { expectRevert, constants } = require("@openzeppelin/test-helpers");
+const { expect, assert } = require("chai");
+const { BigNumber } = require("ethers");
 const { ethers } = require("hardhat");
 
+const TEST_HASH = "TEST";
 
-describe("NFT royalty token test", function () {
+describe("NFT token test", function () {
     let deployer, user1;
-    let royaltzNFT;
+    let tokenInstance;
 
     before(async () => {
         [deployer, user1] = await ethers.getSigners()
         const RoyaltzNFT = await ethers.getContractFactory("RoyaltzNFT")
-        royaltzNFT = await RoyaltzNFT.deploy(deployer.address);
-        // const tokens = await royaltzNFT.tokensOfOwner(deployer.address);
-        const owner = await royaltzNFT.owner();
-        console.log('owner: ', owner);
+        tokenInstance = await RoyaltzNFT.deploy(deployer.address);
     })
 
     // beforeEach(async () => {
@@ -30,25 +30,62 @@ describe("NFT royalty token test", function () {
     //     // send any token amounts here
     // });
 
-    it("should returns the deployer", async () => {
-        const owner = await royaltzNFT.owner();
-        expect(owner).equal(deployer.address)
-    })
+    describe("Test ERC721", () => {
+        it("should returns the deployer", async () => {
+            const owner = await tokenInstance.owner();
+            expect(owner).equal(deployer.address)
+        })
 
-    it("should returns the initial royalty receiver", async () => {
-        const receiver = await royaltzNFT.getRoyaltyReceiver();
-        expect(receiver).equal(deployer.address)
-    })
+        it("should returns the initial royalty receiver", async () => {
+            const receiver = await tokenInstance.getRoyaltyReceiver();
+            expect(receiver).equal(deployer.address)
+        })
 
-    it("should set new royalty receiver", async () => { 
-        await royaltzNFT.setRoyaltyReceiver(user1.address);
-        const newReceiver = await royaltzNFT.getRoyaltyReceiver();
-        expect(newReceiver).equal(user1.address);
-    })
+        it("should set new royalty receiver", async () => {
+            await tokenInstance.setRoyaltyReceiver(user1.address);
+            const newReceiver = await tokenInstance.getRoyaltyReceiver();
+            expect(newReceiver).equal(user1.address);
+        })
 
-    it("should mint and returns the tokens of an address", async () => { 
-        await royaltzNFT.mint(user1.address, "test_uri_0");
-        const tokens = await royaltzNFT.tokensOfOwner(user1.address);
-        expect(tokens).to.have.length(1);
+        it("should mint", async () => {
+            const balanceBefore = await tokenInstance.totalSupply();
+            await tokenInstance.mint(user1.address, "1");
+            const balanceAfter = await tokenInstance.totalSupply();
+            
+            expect(+balanceBefore).equal(+balanceAfter - 1);
+            expect(await tokenInstance.balanceOf(user1.address)).equal("1");
+        })
+
+        it("should throw when called not by the Owner", async function () {
+            let hasError = false;
+            try {
+                await tokenInstance.connect(user1).mint(deployer.address, "2");
+            } catch (error) {
+                hasError = true;
+            }
+            expect(hasError).to.be.true;
+        })
+
+        it("should throw when no hash provided", async () => {
+            let hasError = false;
+            try {
+                await tokenInstance.mint(deployer.address, "");
+            } catch (error) {
+                hasError = true;
+            }
+            expect(hasError).to.be.true;
+        })
+
+        it("should throw when same hash provided", async () => {
+            let hasError = false;
+            try {
+                await tokenInstance.mint(deployer.address, "TEST");
+                await tokenInstance.mint(deployer.address, "TEST");
+            } catch (error) {
+                hasError = true;
+            }
+            expect(hasError).to.be.true;
+        })
+
     })
 })

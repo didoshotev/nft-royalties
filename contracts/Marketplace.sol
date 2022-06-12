@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IERC2981.sol";
 import "./RoyaltzNFT.sol";
+import "hardhat/console.sol";
 
 contract Marketplace {
     struct SellOffer {
