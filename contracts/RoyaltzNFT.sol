@@ -26,7 +26,7 @@ contract RoyaltzNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     }
 
     function _baseURI() internal pure override returns (string memory) {
-        return "https://gateway.pinata.cloud/ipfs/";
+        return "ipfs://";
     }
 
     function safeMint(
