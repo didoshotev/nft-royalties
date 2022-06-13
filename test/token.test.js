@@ -49,7 +49,7 @@ describe("NFT token test", function () {
 
         it("should mint", async () => {
             const balanceBefore = await tokenInstance.totalSupply();
-            await tokenInstance.mint(user1.address, "1");
+            await tokenInstance.mint(user1.address, "0");
             const balanceAfter = await tokenInstance.totalSupply();
             
             expect(+balanceBefore).equal(+balanceAfter - 1);
@@ -87,5 +87,12 @@ describe("NFT token test", function () {
             expect(hasError).to.be.true;
         })
 
+        it("should return correct token URI", async() => { 
+            const TOKEN_NUMBER = 0;
+            await tokenInstance.mint(user1.address, "TEST_123");
+            const tokens = await tokenInstance.tokensOfOwner(user1.address);
+            const tokenUri = await tokenInstance.tokenURI(tokens[TOKEN_NUMBER]);
+            expect(tokenUri).equal(`ipfs://${TOKEN_NUMBER}`);
+        })
     })
 })
